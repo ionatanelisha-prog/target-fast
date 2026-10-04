@@ -1,0 +1,923 @@
+<title>Target Fast</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<meta name="theme-color" content="#090a14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Target Fast">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Sora:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root{
+    --void:#090a14;
+    --void-2:#12142a;
+    --void-3:#1a1d3a;
+    --grid-line:rgba(140,150,255,0.05);
+    --ink:#f4f6ff;
+    --ink-dim:#8a8fb8;
+    --ink-faint:#565b82;
+    --magenta:#ff2e77;
+    --magenta-dim:rgba(255,46,119,0.35);
+    --cyan:#35f0c9;
+    --cyan-dim:rgba(53,240,201,0.35);
+    --gold:#ffc53d;
+    --gold-glow:rgba(255,197,61,0.55);
+    --diamond:#a6e8ff;
+    --diamond-glow:rgba(166,232,255,0.6);
+    --coral:#ff5c6c;
+    --coral-glow:rgba(255,92,108,0.5);
+    --bomb-body:#211a2e;
+    --bomb-edge:#3a2f52;
+    --bomb-fuse:#ff8a3d;
+    --danger:#ff3b3b;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--void);
+    color:var(--ink);
+    font-family:'Sora',system-ui,sans-serif;
+    overflow-x:hidden;
+  }
+
+  #app{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:28px 16px;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,46,119,0.14), transparent 60%),
+      radial-gradient(ellipse 50% 35% at 85% 100%, rgba(53,240,201,0.10), transparent 60%),
+      var(--void);
+  }
+
+  #app::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:42px 42px;
+    z-index:0;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    #app::before{ animation:grid-drift 26s linear infinite; }
+  }
+  @keyframes grid-drift{ from{background-position:0 0,0 0;} to{background-position:42px 42px,42px 42px;} }
+
+  .screen{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:560px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  h1,h2,h3{ margin:0; text-wrap:balance; }
+  p{ margin:0; }
+  button{ font-family:inherit; }
+
+  .eyebrow{
+    font-family:'Sora',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+
+  /* ---------- mute toggle (persistent, top corner) ---------- */
+  #muteToggle{
+    position:fixed;
+    top:16px;
+    right:16px;
+    z-index:20;
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:rgba(18,20,42,0.75);
+    backdrop-filter:blur(6px);
+    color:var(--ink-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease, transform .15s ease;
+  }
+  #muteToggle:hover{ color:var(--ink); border-color:rgba(255,255,255,0.3); }
+  #muteToggle:active{ transform:scale(0.92); }
+  #muteToggle:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+
+  /* ---------- START SCREEN ---------- */
+  .title-block{ text-align:center; margin-bottom:6px; }
+  .title-block .eyebrow{ color:var(--cyan); margin-bottom:10px; display:block; }
+
+  .logo{
+    font-family:'Bungee', system-ui, sans-serif;
+    font-size:clamp(38px, 10vw, 62px);
+    line-height:1;
+    letter-spacing:0.01em;
+    color:var(--ink);
+    text-shadow:
+      0 0 12px var(--magenta-dim),
+      0 0 34px var(--magenta-dim);
+  }
+  .logo .fast{
+    color:var(--cyan);
+    text-shadow:0 0 12px var(--cyan-dim), 0 0 34px var(--cyan-dim);
+  }
+
+  .tagline{
+    margin-top:12px;
+    color:var(--ink-dim);
+    font-size:15px;
+    max-width:36ch;
+    text-align:center;
+  }
+
+  .best-chip{
+    margin-top:22px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid rgba(255,197,61,0.35);
+    background:rgba(255,197,61,0.08);
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    color:var(--gold);
+  }
+  .best-chip .k{ color:var(--ink-faint); font-family:'Sora',sans-serif; font-weight:700; letter-spacing:.14em; font-size:11px; text-transform:uppercase; }
+
+  .legend{
+    margin-top:30px;
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 14px;
+    padding:18px;
+    border-radius:16px;
+    background:var(--void-2);
+    border:1px solid rgba(255,255,255,0.06);
+  }
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    color:var(--ink-dim);
+  }
+  .legend-item b{ color:var(--ink); font-weight:700; }
+  .legend-swatch{ flex:none; }
+
+  .start-btn{
+    margin-top:30px;
+    font-family:'Bungee', sans-serif;
+    font-size:19px;
+    letter-spacing:0.04em;
+    color:var(--void);
+    background:linear-gradient(135deg, var(--cyan), var(--magenta));
+    border:none;
+    padding:16px 46px;
+    border-radius:14px;
+    cursor:pointer;
+    box-shadow:0 0 0 0 rgba(255,46,119,0.5), 0 8px 24px -6px rgba(255,46,119,0.45);
+    transition:transform .12s ease, box-shadow .2s ease;
+  }
+  .start-btn:hover{ transform:translateY(-2px); box-shadow:0 0 24px 2px rgba(53,240,201,0.35), 0 10px 28px -6px rgba(255,46,119,0.55); }
+  .start-btn:active{ transform:translateY(0px) scale(0.98); }
+  .start-btn:focus-visible{ outline:2px solid var(--ink); outline-offset:3px; }
+
+  .rules-hint{
+    margin-top:16px;
+    font-size:12px;
+    color:var(--ink-faint);
+  }
+
+  /* ---------- PLAY SCREEN ---------- */
+  #screen-play{ max-width:640px; }
+
+  .hud{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:start;
+    padding:0 4px 14px;
+    gap:10px;
+  }
+  .hud-stat{ display:flex; flex-direction:column; gap:2px; }
+  .hud-stat.time{ align-items:center; }
+  .hud-stat.best-stat{ align-items:flex-end; }
+  .hud-label{
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .hud-value{
+    font-family:'Space Mono', monospace;
+    font-variant-numeric:tabular-nums;
+    font-weight:700;
+    font-size:30px;
+    color:var(--cyan);
+    transition:color .2s ease;
+  }
+  .hud-stat.time .hud-value{ font-size:34px; color:var(--ink); }
+  .hud-stat.time.critical .hud-value{ color:var(--danger); }
+  @media (prefers-reduced-motion: no-preference){
+    .hud-stat.time.critical .hud-value{ animation:pulse-danger 0.6s ease-in-out infinite; }
+  }
+  @keyframes pulse-danger{ 0%,100%{opacity:1;} 50%{opacity:.45;} }
+  .hud-stat.best-stat .hud-value{ font-size:18px; color:var(--gold); }
+  .hud-value.bump{ animation:count-bump .28s ease; }
+  @keyframes count-bump{ 0%{transform:scale(1);} 35%{transform:scale(1.22);} 100%{transform:scale(1);} }
+
+  .play-area{
+    position:relative;
+    width:100%;
+    height:min(66vh, 560px);
+    min-height:380px;
+    border-radius:22px;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% 0%, rgba(255,46,119,0.07), transparent 65%),
+      var(--void-2);
+    border:1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      inset 0 0 60px rgba(0,0,0,0.55),
+      inset 0 0 0 1px rgba(255,255,255,0.03);
+    overflow:hidden;
+    touch-action:none;
+  }
+
+  .flash-overlay{
+    position:absolute;
+    inset:0;
+    background:var(--danger);
+    opacity:0;
+    pointer-events:none;
+    z-index:5;
+  }
+  .flash-overlay.hit{ animation:flash-fade .32s ease-out; }
+  @keyframes flash-fade{ 0%{opacity:.4;} 100%{opacity:0;} }
+
+  @media (prefers-reduced-motion: no-preference){
+    .play-area.shake{ animation:shake .32s ease; }
+  }
+  @keyframes shake{
+    10%,90%{ transform:translateX(-1px); }
+    20%,80%{ transform:translateX(3px); }
+    30%,50%,70%{ transform:translateX(-6px); }
+    40%,60%{ transform:translateX(6px); }
+  }
+
+  /* ---------- targets ---------- */
+  .target{
+    position:absolute;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transform:scale(0);
+    animation:pop-in .22s cubic-bezier(.34,1.56,.64,1) forwards;
+    touch-action:none;
+    z-index:2;
+  }
+  @keyframes pop-in{ to{ transform:scale(1); } }
+  .target.hit{ animation:pop-out-hit .26s ease-out forwards !important; pointer-events:none; }
+  .target.miss{ animation:pop-out-miss .22s ease-in forwards !important; pointer-events:none; }
+  @keyframes pop-out-hit{ to{ transform:scale(1.7); opacity:0; } }
+  @keyframes pop-out-miss{ to{ transform:scale(.35); opacity:0; } }
+
+  .t-regular, .t-red{
+    border-radius:50%;
+    width:var(--tsize);
+    height:var(--tsize);
+  }
+  .t-regular{
+    background:radial-gradient(circle at 35% 30%, #ffffff, var(--cyan) 45%, #0f8f79 100%);
+    box-shadow:0 0 14px 1px var(--cyan-dim);
+  }
+  .t-red{
+    background:radial-gradient(circle at 35% 30%, #ffe3e3, var(--coral) 45%, #9c1e2c 100%);
+    box-shadow:0 0 14px 1px var(--coral-glow);
+  }
+  .t-gold{
+    border-radius:50%;
+    width:var(--tsize);
+    height:var(--tsize);
+    background:radial-gradient(circle at 35% 30%, #fff6dc, var(--gold) 45%, #a86c05 100%);
+    box-shadow:0 0 16px 3px var(--gold-glow);
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .t-gold{ animation:pop-in .22s cubic-bezier(.34,1.56,.64,1) forwards, pulse-gold 1s ease-in-out infinite .22s; }
+  }
+  @keyframes pulse-gold{ 0%,100%{ box-shadow:0 0 14px 2px var(--gold-glow);} 50%{ box-shadow:0 0 26px 8px var(--gold-glow);} }
+  .t-gold::after{
+    content:"\2726";
+    position:absolute;
+    font-size:calc(var(--tsize) * 0.32);
+    color:#fff8e6;
+    text-shadow:0 0 6px var(--gold);
+  }
+
+  .t-diamond{
+    width:var(--tsize);
+    height:var(--tsize);
+    background:linear-gradient(135deg, #ffffff, var(--diamond) 40%, #2f8fb0 100%);
+    clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    box-shadow:0 0 18px 4px var(--diamond-glow);
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .t-diamond{ animation:pop-in .22s cubic-bezier(.34,1.56,.64,1) forwards, pulse-diamond .7s ease-in-out infinite .22s; }
+  }
+  @keyframes pulse-diamond{ 0%,100%{ box-shadow:0 0 16px 3px var(--diamond-glow);} 50%{ box-shadow:0 0 30px 10px var(--diamond-glow);} }
+
+  .t-bomb{
+    border-radius:50%;
+    width:var(--tsize);
+    height:var(--tsize);
+    background:radial-gradient(circle at 35% 30%, var(--bomb-edge), var(--bomb-body) 60%, #0a0812 100%);
+    box-shadow:0 0 12px 1px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .t-bomb::before{
+    content:"";
+    position:absolute;
+    top:-18%;
+    left:52%;
+    width:2px;
+    height:38%;
+    background:linear-gradient(var(--bomb-fuse), transparent);
+    transform:rotate(18deg);
+    transform-origin:bottom;
+  }
+  .t-bomb::after{
+    content:"";
+    position:absolute;
+    top:-22%;
+    left:58%;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--bomb-fuse);
+    box-shadow:0 0 8px 3px var(--bomb-fuse);
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .t-bomb::after{ animation:fuse-flicker .35s ease-in-out infinite; }
+  }
+  @keyframes fuse-flicker{ 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
+
+  /* ---------- particles & floating text ---------- */
+  .fx-layer{ position:absolute; inset:0; pointer-events:none; z-index:6; }
+  .particle{
+    position:absolute;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    left:0; top:0;
+    animation:particle-fly .55s ease-out forwards;
+  }
+  @keyframes particle-fly{ to{ transform:translate(var(--dx), var(--dy)) scale(0.2); opacity:0; } }
+
+  .float-text{
+    position:absolute;
+    left:0; top:0;
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:20px;
+    transform:translate(-50%,-50%);
+    animation:float-up .7s ease-out forwards;
+    white-space:nowrap;
+  }
+  @keyframes float-up{ to{ transform:translate(-50%, -140%); opacity:0; } }
+
+  /* ---------- RESULTS SCREEN ---------- */
+  .results-card{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+  }
+  .results-eyebrow{ color:var(--magenta); }
+
+  .best-pin{
+    margin-top:16px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 22px;
+    border-radius:999px;
+    background:rgba(255,197,61,0.08);
+    border:1px solid rgba(255,197,61,0.4);
+  }
+  .best-pin .hud-label{ color:var(--gold); }
+  .best-pin .val{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:20px;
+    color:var(--gold);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .score-reveal{ margin-top:38px; position:relative; }
+  .score-reveal .hud-label{ text-align:center; }
+  .score-big{
+    font-family:'Bungee', sans-serif;
+    font-size:clamp(64px, 18vw, 104px);
+    line-height:1;
+    color:var(--ink);
+    text-shadow:0 0 24px var(--cyan-dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .new-best-badge{
+    margin-top:10px;
+    display:inline-block;
+    font-family:'Bungee', sans-serif;
+    font-size:13px;
+    letter-spacing:.05em;
+    color:var(--void);
+    background:linear-gradient(135deg, var(--gold), var(--coral));
+    padding:6px 16px;
+    border-radius:999px;
+    opacity:0;
+  }
+  .new-best-badge.show{
+    opacity:1;
+    animation:badge-pop .4s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes badge-pop{ from{ transform:scale(0.4); opacity:0;} to{ transform:scale(1); opacity:1;} }
+
+  .results-actions{
+    margin-top:38px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .btn-secondary{
+    font-family:'Bungee', sans-serif;
+    font-size:14px;
+    letter-spacing:.03em;
+    color:var(--ink-dim);
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.16);
+    padding:14px 26px;
+    border-radius:14px;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .btn-secondary:hover{ color:var(--ink); border-color:rgba(255,255,255,0.4); }
+  .btn-secondary:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; }
+
+  [hidden]{ display:none !important; }
+
+  @media (max-width: 420px){
+    .legend{ grid-template-columns:1fr; }
+    .hud-value{ font-size:24px; }
+    .hud-stat.time .hud-value{ font-size:28px; }
+  }
+</style>
+
+<button id="muteToggle" aria-label="Toggle sound" title="Toggle sound">&#128266;</button>
+
+<div id="app">
+
+  <section id="screen-start" class="screen">
+    <div class="title-block">
+      <span class="eyebrow">60-second reflex arcade</span>
+      <h1 class="logo">TARGET<span class="fast"> FAST</span></h1>
+    </div>
+    <p class="tagline">Targets pop up around the field &mdash; tap them before they vanish. Chase the rare ones, dodge the bombs.</p>
+
+    <div class="best-chip"><span class="k">Best</span><span id="startBest">0</span></div>
+
+    <div class="legend" aria-label="Target point values">
+      <div class="legend-item"><span class="legend-swatch t-regular" style="--tsize:20px;position:relative;display:inline-block;"></span><span><b>+1</b> Regular</span></div>
+      <div class="legend-item"><span class="legend-swatch t-red" style="--tsize:20px;position:relative;display:inline-block;"></span><span><b>+3</b> Red</span></div>
+      <div class="legend-item"><span class="legend-swatch t-bomb" style="--tsize:20px;position:relative;display:inline-block;"></span><span><b>&minus;5</b> Bomb &mdash; avoid</span></div>
+      <div class="legend-item"><span class="legend-swatch t-gold" style="--tsize:20px;position:relative;display:inline-block;"></span><span><b>+5</b> Gold &mdash; rare</span></div>
+      <div class="legend-item"><span class="legend-swatch t-diamond" style="--tsize:18px;position:relative;display:inline-block;"></span><span><b>+10</b> Diamond &mdash; rarest</span></div>
+    </div>
+
+    <button class="start-btn" id="startBtn">START</button>
+    <p class="rules-hint">60 seconds on the clock. Go.</p>
+  </section>
+
+  <section id="screen-play" class="screen" hidden>
+    <div class="hud">
+      <div class="hud-stat">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="scoreVal">0</span>
+      </div>
+      <div class="hud-stat time">
+        <span class="hud-label">Time</span>
+        <span class="hud-value" id="timeVal">60</span>
+      </div>
+      <div class="hud-stat best-stat">
+        <span class="hud-label">Best</span>
+        <span class="hud-value" id="playBest">0</span>
+      </div>
+    </div>
+    <div class="play-area" id="playArea">
+      <div class="flash-overlay" id="flashOverlay"></div>
+      <div class="fx-layer" id="fxLayer"></div>
+    </div>
+  </section>
+
+  <section id="screen-results" class="screen" hidden>
+    <div class="results-card">
+      <span class="eyebrow results-eyebrow">Round over</span>
+
+      <div class="best-pin">
+        <span class="hud-label">Best</span>
+        <span class="val" id="resultsBest">0</span>
+      </div>
+
+      <div class="score-reveal">
+        <span class="hud-label">Your score</span>
+        <div class="score-big" id="resultsScore">0</div>
+        <span class="new-best-badge" id="newBestBadge">NEW BEST!</span>
+      </div>
+
+      <div class="results-actions">
+        <button class="start-btn" id="playAgainBtn" style="margin-top:0;">PLAY AGAIN</button>
+        <button class="btn-secondary" id="menuBtn">MAIN MENU</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TYPE_COLORS = {
+    regular:"#35f0c9", red:"#ff5c6c", bomb:"#c9c9d8", gold:"#ffc53d", diamond:"#a6e8ff"
+  };
+
+  var TARGET_TYPES = {
+    regular: { points: 1,  weight: 52, life:[900,1500],  size:[48,58], cls:"t-regular" },
+    red:     { points: 3,  weight: 26, life:[820,1300],  size:[46,56], cls:"t-red" },
+    bomb:    { points: -5, weight: 14, life:[1600,2400], size:[48,58], cls:"t-bomb", isBomb:true },
+    gold:    { points: 5,  weight: 6,  life:[1300,1900], size:[52,62], cls:"t-gold" },
+    diamond: { points: 10, weight: 2,  life:[1400,2000], size:[54,66], cls:"t-diamond" }
+  };
+  var TYPE_ORDER = ["regular","red","bomb","gold","diamond"];
+  var TOTAL_WEIGHT = TYPE_ORDER.reduce(function(s,k){ return s + TARGET_TYPES[k].weight; }, 0);
+
+  var MAX_CONCURRENT = 4;
+  var ROUND_MS = 60000;
+
+  var el = {
+    start: document.getElementById("screen-start"),
+    play: document.getElementById("screen-play"),
+    results: document.getElementById("screen-results"),
+    startBtn: document.getElementById("startBtn"),
+    playAgainBtn: document.getElementById("playAgainBtn"),
+    menuBtn: document.getElementById("menuBtn"),
+    playArea: document.getElementById("playArea"),
+    fxLayer: document.getElementById("fxLayer"),
+    flashOverlay: document.getElementById("flashOverlay"),
+    scoreVal: document.getElementById("scoreVal"),
+    timeVal: document.getElementById("timeVal"),
+    timeStat: document.querySelector(".hud-stat.time"),
+    playBest: document.getElementById("playBest"),
+    startBest: document.getElementById("startBest"),
+    resultsBest: document.getElementById("resultsBest"),
+    resultsScore: document.getElementById("resultsScore"),
+    newBestBadge: document.getElementById("newBestBadge"),
+    muteToggle: document.getElementById("muteToggle")
+  };
+
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function loadBest(){
+    try{ return parseInt(localStorage.getItem("targetfast-best-score"), 10) || 0; }
+    catch(e){ return 0; }
+  }
+  function saveBest(v){
+    try{ localStorage.setItem("targetfast-best-score", String(v)); }catch(e){}
+  }
+  function loadMuted(){
+    try{ return localStorage.getItem("targetfast-muted") === "1"; }
+    catch(e){ return false; }
+  }
+  function saveMuted(v){
+    try{ localStorage.setItem("targetfast-muted", v ? "1" : "0"); }catch(e){}
+  }
+
+  var best = loadBest();
+  var muted = loadMuted();
+  el.startBest.textContent = best;
+  el.playBest.textContent = best;
+  updateMuteIcon();
+
+  var audioCtx = null;
+  function ensureAudio(){
+    if(audioCtx || muted) return;
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+  }
+  function beep(freq, duration, type, gain, delay){
+    if(muted || !audioCtx) return;
+    try{
+      var t = audioCtx.currentTime + (delay || 0);
+      var osc = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(gain != null ? gain : 0.16, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(g).connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.03);
+    }catch(e){}
+  }
+  function sfxHit(type){
+    if(type === "regular") beep(520, 0.09, "sine", 0.14);
+    else if(type === "red") beep(660, 0.1, "sine", 0.16);
+    else if(type === "gold"){ beep(700,0.08,"triangle",0.16); beep(940,0.11,"triangle",0.16,0.06); }
+    else if(type === "diamond"){ beep(700,0.07,"triangle",0.17); beep(900,0.07,"triangle",0.17,0.05); beep(1180,0.12,"triangle",0.17,0.10); }
+    else if(type === "bomb") beep(110, 0.28, "sawtooth", 0.18);
+  }
+  function sfxStart(){ beep(440,0.09,"square",0.12); beep(660,0.12,"square",0.12,0.08); }
+  function sfxEnd(){ beep(520,0.14,"sine",0.14); beep(300,0.22,"sine",0.14,0.12); }
+
+  function updateMuteIcon(){
+    el.muteToggle.innerHTML = muted ? "&#128263;" : "&#128266;";
+  }
+  el.muteToggle.addEventListener("click", function(){
+    muted = !muted;
+    saveMuted(muted);
+    updateMuteIcon();
+  });
+
+  function pickType(){
+    var r = Math.random() * TOTAL_WEIGHT;
+    for(var i=0;i<TYPE_ORDER.length;i++){
+      var key = TYPE_ORDER[i];
+      r -= TARGET_TYPES[key].weight;
+      if(r <= 0) return key;
+    }
+    return "regular";
+  }
+  function randRange(range){ return range[0] + Math.random() * (range[1]-range[0]); }
+
+  function elapsedRatio(){
+    return Math.min(1, (Date.now() - game.startTime) / ROUND_MS);
+  }
+
+  function burst(x, y, color, count){
+    var frag = document.createDocumentFragment();
+    var n = reduceMotion ? 0 : (count || 9);
+    for(var i=0;i<n;i++){
+      var p = document.createElement("span");
+      p.className = "particle";
+      var angle = (Math.PI*2) * (i/n) + Math.random()*0.5;
+      var dist = 28 + Math.random()*34;
+      p.style.setProperty("--dx", (Math.cos(angle)*dist)+"px");
+      p.style.setProperty("--dy", (Math.sin(angle)*dist)+"px");
+      p.style.left = x+"px";
+      p.style.top = y+"px";
+      p.style.background = color;
+      p.style.boxShadow = "0 0 6px 1px " + color;
+      frag.appendChild(p);
+    }
+    el.fxLayer.appendChild(frag);
+    setTimeout(function(){
+      Array.prototype.forEach.call(el.fxLayer.querySelectorAll(".particle"), function(n){
+        if(n.parentNode) n.parentNode.removeChild(n);
+      });
+    }, 650);
+  }
+
+  function floatText(x, y, text, color){
+    var t = document.createElement("div");
+    t.className = "float-text";
+    t.textContent = text;
+    t.style.left = x+"px";
+    t.style.top = y+"px";
+    t.style.color = color;
+    t.style.textShadow = "0 0 10px " + color;
+    el.fxLayer.appendChild(t);
+    setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 720);
+  }
+
+  var game = null;
+
+  function newGameState(){
+    return {
+      active:false,
+      score:0,
+      startTime:0,
+      endTime:0,
+      lastDisplayedTime:-1,
+      spawnTimeoutId:null,
+      rafId:null,
+      targets:[]
+    };
+  }
+
+  function bumpEl(node){
+    node.classList.remove("bump");
+    void node.offsetWidth;
+    node.classList.add("bump");
+  }
+
+  function updateScore(delta){
+    game.score += delta;
+    el.scoreVal.textContent = game.score;
+    bumpEl(el.scoreVal);
+  }
+
+  function spawnTarget(){
+    if(!game.active) return;
+    if(game.targets.length >= MAX_CONCURRENT) return;
+
+    var typeKey = pickType();
+    var type = TARGET_TYPES[typeKey];
+    var rect = el.playArea.getBoundingClientRect();
+    var size = randRange(type.size);
+    var pad = 6;
+    var maxX = Math.max(pad, rect.width - size - pad);
+    var maxY = Math.max(pad, rect.height - size - pad);
+    var x = pad + Math.random() * (maxX - pad);
+    var y = pad + Math.random() * (maxY - pad);
+
+    var node = document.createElement("div");
+    node.className = "target " + type.cls;
+    node.style.setProperty("--tsize", size+"px");
+    node.style.left = x+"px";
+    node.style.top = y+"px";
+
+    var lifeMult = 1 - elapsedRatio() * 0.55;
+    var life = randRange(type.life) * lifeMult;
+    if(reduceMotion) node.style.animation = "none";
+
+    var record = { node:node, typeKey:typeKey, timeoutId:null, done:false };
+
+    function remove(hit){
+      if(record.done) return;
+      record.done = true;
+      clearTimeout(record.timeoutId);
+      var idx = game.targets.indexOf(record);
+      if(idx !== -1) game.targets.splice(idx,1);
+      var cx = x + size/2, cy = y + size/2;
+
+      if(hit){
+        node.classList.add("hit");
+        var color = TYPE_COLORS[typeKey];
+        burst(cx, cy, color, type.isBomb ? 14 : 9);
+        var label = (type.points > 0 ? "+" : "") + type.points;
+        floatText(cx, cy, label, type.isBomb ? "#ff5c5c" : color);
+        updateScore(type.points);
+        sfxHit(typeKey);
+        el.playBest.textContent = best;
+
+        if(type.isBomb){
+          el.flashOverlay.classList.remove("hit");
+          void el.flashOverlay.offsetWidth;
+          el.flashOverlay.classList.add("hit");
+          if(!reduceMotion){
+            el.playArea.classList.remove("shake");
+            void el.playArea.offsetWidth;
+            el.playArea.classList.add("shake");
+          }
+        }
+      } else {
+        node.classList.add("miss");
+      }
+
+      setTimeout(function(){ if(node.parentNode) node.parentNode.removeChild(node); }, 300);
+    }
+
+    node.addEventListener("pointerdown", function(e){
+      e.preventDefault();
+      remove(true);
+    }, { passive:false });
+
+    record.timeoutId = setTimeout(function(){ remove(false); }, life);
+
+    el.playArea.appendChild(node);
+    game.targets.push(record);
+  }
+
+  function scheduleSpawn(){
+    if(!game.active) return;
+    var ratio = elapsedRatio();
+    var base = 850 - ratio * 560;
+    var interval = Math.max(200, base + (Math.random()*260 - 130));
+    game.spawnTimeoutId = setTimeout(function(){
+      if(!game.active) return;
+      spawnTarget();
+      scheduleSpawn();
+    }, interval);
+  }
+
+  function timerLoop(){
+    if(!game.active) return;
+    var remain = Math.max(0, Math.ceil((game.endTime - Date.now())/1000));
+    if(remain !== game.lastDisplayedTime){
+      game.lastDisplayedTime = remain;
+      el.timeVal.textContent = remain;
+      el.timeStat.classList.toggle("critical", remain <= 10 && remain > 0);
+    }
+    if(Date.now() >= game.endTime){
+      endRound();
+      return;
+    }
+    game.rafId = requestAnimationFrame(timerLoop);
+  }
+
+  function clearAllTargets(){
+    game.targets.slice().forEach(function(record){
+      clearTimeout(record.timeoutId);
+      if(record.node.parentNode) record.node.parentNode.removeChild(record.node);
+    });
+    game.targets = [];
+  }
+
+  function showScreen(name){
+    el.start.hidden = name !== "start";
+    el.play.hidden = name !== "play";
+    el.results.hidden = name !== "results";
+  }
+
+  function startRound(){
+    ensureAudio();
+    sfxStart();
+    game = newGameState();
+    game.active = true;
+    game.startTime = Date.now();
+    game.endTime = game.startTime + ROUND_MS;
+
+    el.scoreVal.textContent = "0";
+    el.timeVal.textContent = "60";
+    el.timeStat.classList.remove("critical");
+    el.playBest.textContent = best;
+    el.fxLayer.innerHTML = "";
+
+    showScreen("play");
+    scheduleSpawn();
+    game.rafId = requestAnimationFrame(timerLoop);
+  }
+
+  function endRound(){
+    game.active = false;
+    clearTimeout(game.spawnTimeoutId);
+    if(game.rafId) cancelAnimationFrame(game.rafId);
+    clearAllTargets();
+    sfxEnd();
+
+    var finalScore = game.score;
+    var isNewBest = finalScore > best;
+    if(isNewBest){ best = finalScore; saveBest(best); }
+
+    el.resultsBest.textContent = best;
+    el.newBestBadge.classList.toggle("show", isNewBest);
+
+    setTimeout(function(){
+      showScreen("results");
+      animateCountUp(el.resultsScore, finalScore, reduceMotion ? 0 : 850);
+    }, 260);
+  }
+
+  function animateCountUp(node, target, duration){
+    if(duration <= 0 || target === 0){ node.textContent = target; return; }
+    var startTs = null;
+    function step(ts){
+      if(startTs === null) startTs = ts;
+      var p = Math.min(1, (ts - startTs) / duration);
+      var eased = 1 - Math.pow(1-p, 3);
+      node.textContent = Math.round(target * eased);
+      if(p < 1) requestAnimationFrame(step);
+      else node.textContent = target;
+    }
+    requestAnimationFrame(step);
+  }
+
+  el.startBtn.addEventListener("click", startRound);
+  el.playAgainBtn.addEventListener("click", startRound);
+  el.menuBtn.addEventListener("click", function(){
+    el.startBest.textContent = best;
+    showScreen("start");
+  });
+
+})();
+</script>
